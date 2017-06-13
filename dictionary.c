@@ -138,7 +138,7 @@ unsigned int size(void)
 }
 
 /**
- * Unloads dictionary from memory. Returns true if successful else false.
+ * Unloads dictionary from memory. Returns true if successful
  */
 bool unload(void)
 {
