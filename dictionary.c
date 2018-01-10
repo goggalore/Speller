@@ -2,55 +2,52 @@
  * Implements a dictionary's functionality.
  */
 
+#include <ctype.h>
 #include <stdbool.h>
 #include <stdio.h>
-#include <ctype.h>
 #include <string.h>
 #include <stdlib.h>
 
 #include "dictionary.h"
 
-/**
- * Returns true if word is in dictionary else false.
- */
-bool FreeTrie();
- 
-typedef struct node
+typedef struct node 
 {
     bool is_word;
     struct node *children[27];
 }
 node;
-    
-node *root; 
-node *cursor;
-int letter_index;
-int count;
-    
+
+node *root;
+int counter = 0;
+
+/**
+ * Returns true if word is in dictionary else false.
+ */
 bool check(const char *word)
 {
-    cursor = root;
-    for(int i = 0; i < strlen(word); i++)
+    node *cursor = root;
+    int index = 0;
+    
+    for (int i = 0; i < strlen(word); i++) 
     {
-        if(isalpha(word[i]))
+        if (isalpha(word[i])) 
         {
-            letter_index = tolower(word[i]) - 'a';
+            index = tolower(word[i]) - 'a';
         }
-        else if (word[i] == '\'')
+        else if(word[i] == '\'')
         {
-            letter_index = 26;
+            index = 26;
         }
         
-        if(cursor->children[letter_index] == NULL)
-        {
+        if (cursor->children[index] == NULL) {
             return false;
         }
-        else
+        else 
         {
-            cursor = cursor->children[letter_index];
+            cursor = cursor->children[index];
         }
         
-        if((i + 1) == strlen(word) && cursor->is_word == true)
+        if (i == strlen(word) - 1 && cursor->is_word == true) 
         {
             return true;
         }
@@ -64,63 +61,61 @@ bool check(const char *word)
  */
 bool load(const char *dictionary)
 {
-    //open dictionary
-    FILE *file = fopen(dictionary, "r");
-    if(file == NULL)
+    // trie data structure implementation
+    char letter = 'a';
+    int index = 0;
+    node *cursor;
+    
+    // open dictionary
+    FILE *dict = fopen(dictionary, "r");
+    if (dict == NULL)
     {
         return false;
     }
     
-    //load dictionary's words
-    char word[LENGTH + 1];
-    
-    //prepare the root of Trie
-    root = calloc(1, sizeof(node));;
-    if(root == NULL)
-    {
+    // allocate memory for the root node
+    root = calloc(1, sizeof(node));
+    if (root == NULL) {
         return false;
     }
-
-    while(fscanf(file, "%s", word) != EOF)
+    
+    cursor = root;
+    while (letter != EOF) 
     {
-        cursor = root;
-        for(int i = 0; i < strlen(word); i++)
+        letter = fgetc(dict);
+        
+        if (letter == '\n') 
         {
-            // check that the char is not a '\'' and convert to ASCII value for letter_index
-            if(isalpha(word[i]))
+            cursor->is_word = true;
+            cursor = root;
+            counter++;
+            continue;
+        }
+        
+        if (isalpha(letter)) {
+            index = tolower(letter) - 'a';
+        }
+        else if (letter == '\'')
+        {
+            index = 26;
+        }
+        
+        if (cursor->children[index] == NULL) {
+            node *child = calloc(1, sizeof(node));
+            if (child == NULL) 
             {
-                letter_index = tolower(word[i]) - 'a';
+                return false;
             }
-            else if (word[i] == '\'')
-            {
-                letter_index = 26;
-            }
-            
-            if (cursor->children[letter_index] == NULL)
-            {
-                node *child = calloc(1, sizeof(node));
-                if(child == NULL)
-                {
-                    return false;
-                }
-                cursor->children[letter_index] = child;
-                cursor = child;
-            }
-            else
-            {
-                cursor = cursor->children[letter_index];
-            }
-                
-            //change bool value if at end of word
-            if((i + 1) == strlen(word))
-            {
-                cursor->is_word = true;
-                count++;
-            }
+            cursor->children[index] = child;
+            cursor = child;
+        }
+        else
+        {
+            cursor = cursor->children[index];
         }
     }
-    fclose(file);
     
+    fclose(dict);
     return true;
 }
 
@@ -129,12 +124,21 @@ bool load(const char *dictionary)
  */
 unsigned int size(void)
 {
-    if (load() == false) 
+    return counter;
+}
+
+bool freeTrie(node *cursor) 
+{
+    for(int i = 0; i < 27; i++)
     {
-        return 0;
+        if(cursor->children[i] != NULL) 
+        {
+            freeTrie(cursor->children[i]);
+        }
     }
+    free(cursor);
     
-    return count;
+    return true;
 }
 
 /**
@@ -142,19 +146,6 @@ unsigned int size(void)
  */
 bool unload(void)
 {
-    return FreeTrie(root);
+    return freeTrie(root);
 }
 
-bool FreeTrie(node *cursor)
-{
-    for(int i = 0; i < 27; i++)
-    {
-        if(cursor->children[i] != NULL)
-        {
-            FreeTrie(cursor->children[i]);
-        }  
-    }
-    free(cursor);
-    
-    return true;
-}
